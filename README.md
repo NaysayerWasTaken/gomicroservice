@@ -22,6 +22,10 @@ In Windows:
 
 Als IDE ist zu empfehlen Entweder VSCode mit der Go Extension, GoLand von JetBrains, oder IntelliJ mit go Extension
 
+
+Zum Programm an sich:
+
+
 Um das ganze auszuführen navigiert ihr zum Ordner mit der "main.go" und führt "go run main.go" aus
 
 Dann passiert scheinbar gar nix.
@@ -32,7 +36,11 @@ Heißt, um zu sehen was das ganze macht wenns läuft muss man per curl, Postman 
 
 Bei einer Nachricht an localhost:9090 antwortet die Anwendung mit "Message Received!". 
 Bei einer Nachricht an localhost:9090/goodbye erhält der Sender die Nachricht "Goodbye" zurück.
-Bei Beenden der Anwendung wird der Server gestoppt indem er aufhört neue Anfragen entgegenzunehmen, die Existierenden abarbeitet und dann herunterfährt.
+Bei Beenden der Anwendung wird der Server gestoppt indem er aufhört neue Anfragen entgegenzunehmen, die existierenden abarbeitet und erst dann herunterfährt.
 
 -> erkennbar an den Konsolenausgaben: "product-api2021/03/09 16:42:36 Recieved terminate, graceful shutdown interrupt
                                        product-api2021/03/09 16:42:36 http: Server closed"
+                                       
+                                       
+                           
+(Zum Verständnis ist der Code der main.go sehr detailliert auskommentiert)
