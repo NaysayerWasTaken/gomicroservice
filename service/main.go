@@ -3,6 +3,7 @@ package main
 import (
 	"FirstService/service/handlers"
 	"context"
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"os"
@@ -23,12 +24,17 @@ func main() {
 	//-> routed die API anfragen ausgehend von der Signatur an verschiedene Handler
 	// sm = ServeMux
 
-	sm := http.NewServeMux()
+	sm := mux.NewRouter()
 
+	getRouter := sm.Methods(http.MethodGet).Subrouter()
+	getRouter.HandleFunc("/", ph.GetProducts)
+
+	putRouter := sm.Methods(http.MethodPut).Subrouter()
+	putRouter.HandleFunc("/{id: [0-9]+}", ph.UpdateProducts)
 	//Eine API Signatur gehoert immer zu einem Handler, welcher diese bearbeitet
 
 	// hier werden die API signaturen den vorher definierten Handlern zugewiesen
-	sm.Handle("/", ph)
+	sm.Handle("/products", ph)
 
 	// Definition eines simplen HTTP Servers in GO
 	// s = Server
