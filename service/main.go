@@ -30,7 +30,8 @@ func main() {
 	getRouter.HandleFunc("/", ph.GetProducts)
 
 	putRouter := sm.Methods(http.MethodPut).Subrouter()
-	putRouter.HandleFunc("/{id: [0-9]+}", ph.UpdateProducts)
+	putRouter.HandleFunc("/{id:[0-9]+}", ph.UpdateProducts)
+	putRouter.Use(ph.MiddlewareValidateProduct)
 	//Eine API Signatur gehoert immer zu einem Handler, welcher diese bearbeitet
 
 	// hier werden die API signaturen den vorher definierten Handlern zugewiesen
@@ -49,7 +50,7 @@ func main() {
 		Handler:      sm,
 		ErrorLog:     l,
 		IdleTimeout:  120 * time.Second,
-		ReadTimeout:  1 * time.Second,
+		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
 
@@ -69,6 +70,7 @@ func main() {
 	c := make(chan os.Signal)
 	// im definierten Signal Channel landen dadurch die Interrupt/Kill Signale des Betriebssystems
 	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, os.Kill)
 
 	// Im Fall, dass der Channel ein Signal erhaelt,
 	// wird der Server Heruntergefahren und das erhaltene Signal gelogged
@@ -76,9 +78,9 @@ func main() {
 	l.Println("Recieved terminate, graceful shutdown", sig)
 
 	// Deadline context unter dem der Server gestoppt wird
-	tc, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 
 	// Server nimmt keine neuen Anfragen mehr entgegen, bearbeitet die verbleibenden und schaltet sich dann ab
 	// -> besser als abrupter stopp
-	s.Shutdown(tc)
+	s.Shutdown(ctx)
 }
