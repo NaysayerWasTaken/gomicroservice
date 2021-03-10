@@ -3,6 +3,7 @@ package main
 import (
 	"FirstService/service/handlers"
 	"context"
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"os"
@@ -11,26 +12,39 @@ import (
 )
 
 func main() {
+
+	//Definition eines Loggers fuer die "product-api"
+	// l = Logger
 	l := log.New(os.Stdout, "product-api", log.LstdFlags)
 
-	// definition eigener Handler fuer API Verbindungen zum Server
-	// hh = Hello Handler
-	// gh = goodbye Handler
-	hh := handlers.NewHello(l)
-	gh := handlers.NewGoodbye(l)
+	// Initialisierung eines neuen Handlers fuer produkte, der den "globalen" Logger verwendet
+	// Ein Handler ist zustaendig fuer die bearbeitung von requests bestimmter Art
+	//(Hier alle die mit produkten zu tun haben)
+	// ph = product handler
+	ph := handlers.NewProduct(l)
 
-	// Ein Mux Funktioniert wie ein router
-	//-> routed die API anfragen ausgehend von der Signatur an verschiedene Handler
-	// sm = ServeMux
+	// EIn Mux kann man sich vorstellen als Router, der HTTP Requests weiterleitet
+	// sm = serve Mux
+	sm := mux.NewRouter()
 
-	sm := http.NewServeMux()
+	// Hier werden fuer jeden relevante HTTP Request Typ ein eigener Subrouter erstellt
 
-	//Eine API Signatur gehoert immer zu einem Handler, welcher diese bearbeitet
+	// Subrouter fuer die GET Methode, legt fest, dass die eingehenden GET Requests am Pfad "/" von der zugehoerigen
+	//Methode im ProductHandler bearbeitet werden
+	getRouter := sm.Methods(http.MethodGet).Subrouter()
+	getRouter.HandleFunc("/", ph.GetProducts)
 
-	// hier werden die API signaturen den vorher definierten Handlern zugewiesen
-	sm.Handle("/", hh)
-	sm.Handle("/goodbye", gh)
+	// Subrouter fuer die PUT Methode, legt fest, dass die eingehenden PUT Requests am Pfad "/(beliebige valide id)"
+	//von der zugehoerigen Methode im ProductHandler bearbeitet werden
+	putRouter := sm.Methods(http.MethodPut).Subrouter()
+	putRouter.HandleFunc("/{id:[0-9]+}", ph.UpdateProducts)
+	putRouter.Use(ph.MiddlewareValidateProduct)
 
+	// Subrouter fuer die POST Methode, legt fest, dass die eingehenden POST Requests am Pfad "/"
+	//von der zugehoerigen Methode im ProductHandler bearbeitet werden
+	postRouter := sm.Methods(http.MethodPost).Subrouter()
+	postRouter.HandleFunc("/", ph.AddProducts)
+	postRouter.Use(ph.MiddlewareValidateProduct)
 
 	// Definition eines simplen HTTP Servers in GO
 	// s = Server
@@ -41,36 +55,41 @@ func main() {
 	// indem Beschraenkungen bei den Verbindungen festgelegt werden
 
 	s := &http.Server{
-		Addr: ":9090",
-		Handler: sm,
-		IdleTimeout: 120*time.Second,
-		ReadTimeout: 1 *time.Second,
-		WriteTimeout: 1 *time.Second,
+		Addr:         ":9090",
+		Handler:      sm,
+		ErrorLog:     l,
+		IdleTimeout:  120 * time.Second,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	}
 
 	// Server wird eingeschaltet
 	go func() {
+
+		l.Println("Starting Server on Port 9090")
+
 		err := s.ListenAndServe()
 		if err != nil {
-			l.Fatal(err)
+			l.Printf("Error starting server: %s\n", err)
+			os.Exit(1)
 		}
 	}()
 
 	// Definiert einen neuen Kanal fuer Signale, der in diesem Fall die Signale des Betriebssystems bekommt
-	sigChan := make(chan os.Signal)
+	c := make(chan os.Signal)
 	// im definierten Signal Channel landen dadurch die Interrupt/Kill Signale des Betriebssystems
-	signal.Notify(sigChan, os.Interrupt)
-	signal.Notify(sigChan, os.Kill)
+	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, os.Kill)
 
 	// Im Fall, dass der Channel ein Signal erhaelt,
 	// wird der Server Heruntergefahren und das erhaltene Signal gelogged
-	sig := <-sigChan
+	sig := <-c
 	l.Println("Recieved terminate, graceful shutdown", sig)
 
 	// Deadline context unter dem der Server gestoppt wird
-	tc, _ := context.WithTimeout(context.Background(), 30 *time.Second)
+	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 
 	// Server nimmt keine neuen Anfragen mehr entgegen, bearbeitet die verbleibenden und schaltet sich dann ab
 	// -> besser als abrupter stopp
-	s.Shutdown(tc)
+	s.Shutdown(ctx)
 }
