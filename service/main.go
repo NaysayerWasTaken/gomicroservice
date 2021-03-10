@@ -13,29 +13,38 @@ import (
 
 func main() {
 
+	//Definition eines Loggers fuer die "product-api"
+	// l = Logger
 	l := log.New(os.Stdout, "product-api", log.LstdFlags)
 
-	// definition eigener Handler fuer API Verbindungen zum Server
-	// hh = Hello Handler
-	// gh = goodbye Handler
-	ph := handlers.NewProducts(l)
+	// Initialisierung eines neuen Handlers fuer produkte, der den "globalen" Logger verwendet
+	// Ein Handler ist zustaendig fuer die bearbeitung von requests bestimmter Art
+	//(Hier alle die mit produkten zu tun haben)
+	// ph = product handler
+	ph := handlers.NewProduct(l)
 
-	// Ein Mux Funktioniert wie ein router
-	//-> routed die API anfragen ausgehend von der Signatur an verschiedene Handler
-	// sm = ServeMux
-
+	// EIn Mux kann man sich vorstellen als Router, der HTTP Requests weiterleitet
+	// sm = serve Mux
 	sm := mux.NewRouter()
 
+	// Hier werden fuer jeden relevante HTTP Request Typ ein eigener Subrouter erstellt
+
+	// Subrouter fuer die GET Methode, legt fest, dass die eingehenden GET Requests am Pfad "/" von der zugehoerigen
+	//Methode im ProductHandler bearbeitet werden
 	getRouter := sm.Methods(http.MethodGet).Subrouter()
 	getRouter.HandleFunc("/", ph.GetProducts)
 
+	// Subrouter fuer die PUT Methode, legt fest, dass die eingehenden PUT Requests am Pfad "/(beliebige valide id)"
+	//von der zugehoerigen Methode im ProductHandler bearbeitet werden
 	putRouter := sm.Methods(http.MethodPut).Subrouter()
 	putRouter.HandleFunc("/{id:[0-9]+}", ph.UpdateProducts)
 	putRouter.Use(ph.MiddlewareValidateProduct)
-	//Eine API Signatur gehoert immer zu einem Handler, welcher diese bearbeitet
 
-	// hier werden die API signaturen den vorher definierten Handlern zugewiesen
-	sm.Handle("/products", ph)
+	// Subrouter fuer die POST Methode, legt fest, dass die eingehenden POST Requests am Pfad "/"
+	//von der zugehoerigen Methode im ProductHandler bearbeitet werden
+	postRouter := sm.Methods(http.MethodPost).Subrouter()
+	postRouter.HandleFunc("/", ph.AddProducts)
+	postRouter.Use(ph.MiddlewareValidateProduct)
 
 	// Definition eines simplen HTTP Servers in GO
 	// s = Server

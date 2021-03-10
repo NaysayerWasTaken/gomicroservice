@@ -3,6 +3,7 @@ package handlers
 import (
 	"FirstService/service/data"
 	"context"
+	"fmt"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -13,7 +14,7 @@ type Products struct {
 	l *log.Logger
 }
 
-func NewProducts(l *log.Logger) *Products {
+func NewProduct(l *log.Logger) *Products {
 	return &Products{l}
 }
 
@@ -29,7 +30,7 @@ func (p *Products) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	rw.WriteHeader(http.StatusMethodNotAllowed)
 }
 
-func (p *Products) GetProducts(rw http.ResponseWriter, h *http.Request) {
+func (p *Products) GetProducts(rw http.ResponseWriter, _ *http.Request) {
 	p.l.Printf("Handle %s Product\n", http.MethodGet)
 	lp := data.GetProducts()
 	err := lp.ToJSON(rw)
@@ -39,17 +40,12 @@ func (p *Products) GetProducts(rw http.ResponseWriter, h *http.Request) {
 
 }
 
-func (p *Products) AddProducts(rw http.ResponseWriter, h http.Request) {
+func (p *Products) AddProducts(rw http.ResponseWriter, h *http.Request) {
 	p.l.Printf("Handle %s Product\n", http.MethodPost)
 
-	prod := &data.Product{}
+	prod := h.Context().Value(KeyProduct{}).(data.Product)
 
-	err := prod.FromJSON(h.Body)
-	if err != nil {
-		http.Error(rw, "Unable to decode JSON", http.StatusBadRequest)
-	}
-
-	data.AddProduct(prod)
+	data.AddProduct(&prod)
 }
 
 func (p Products) UpdateProducts(rw http.ResponseWriter, h *http.Request) {
@@ -87,6 +83,13 @@ func (p Products) MiddlewareValidateProduct(next http.Handler) http.Handler {
 		if err != nil {
 			p.l.Println("[ERROR] deserializing product", err)
 			http.Error(rw, "Error reading product", http.StatusBadRequest)
+			return
+		}
+
+		err = prod.Validate()
+		if err != nil {
+			p.l.Println("[ERROR] validationg product", err)
+			http.Error(rw, fmt.Sprintf("Error validating product: %s", err), http.StatusBadRequest)
 			return
 		}
 

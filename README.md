@@ -34,13 +34,10 @@ Die Anwendung kann zum Stand auf master einen HTTP-Server starten der auf zwei m
 
 Heißt, um zu sehen was das ganze macht wenns läuft muss man per curl, Postman oder auf anderem Wege HTTP-Nachrichten auf Port 9090 schicken.
 
-Bei einer Nachricht an localhost:9090 antwortet die Anwendung mit "Message Received!". 
-Bei einer Nachricht an localhost:9090/goodbye erhält der Sender die Nachricht "Goodbye" zurück.
-Bei Beenden der Anwendung wird der Server gestoppt indem er aufhört neue Anfragen entgegenzunehmen, die existierenden abarbeitet und erst dann herunterfährt.
-
--> erkennbar an den Konsolenausgaben: "product-api2021/03/09 16:42:36 Recieved terminate, graceful shutdown interrupt
-                                       product-api2021/03/09 16:42:36 http: Server closed"
-                                       
-                                       
-                           
-(Zum Verständnis ist der Code der main.go sehr detailliert auskommentiert)
+- GET: localhost:9090 
+        -> dadurch bekommt man alle (gehardcodeten vorhandenen Produkte als antwort)
+- PUT: localhost:9090/1 {"name": "Neues Produkt"}
+        -> dadurch wird der name des Produkts mit der ID 1 zu "Neues Produkt"
+- POST: localhost:9090 {"name": "Neues Produkt", "price": "1.20", "sku": "abc-abc-abc"}
+        -> dadurch wird ein Produkt mit den in der JSON definierten Parametern erstellt
+  (Über eine weitere GET Request lassen sich die Änderungen überprüfen)
